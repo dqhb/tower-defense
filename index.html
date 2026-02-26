@@ -3,62 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tower defense</title>
+    <title>Isometric Castle Defense - Grand Arsenal</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; user-select: none; }
         canvas { display: block; }
         
-        /* UI Elements */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
         
-        #top-bar { padding: 15px 30px; display: flex; justify-content: space-between; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
-        .stat { font-size: 1.5rem; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        #top-bar { padding: 15px 30px; display: flex; justify-content: space-between; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); }
+        .stat { font-size: 1.5rem; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         #money { color: #fbbf24; }
         #health { color: #ef4444; }
         #wave { color: #38bdf8; }
 
-        /* Tower Selection Toolbar */
+        /* Expanded Toolbar for 10 Towers */
+        #toolbar-container { display: flex; justify-content: center; width: 100%; padding-bottom: 10px; pointer-events: auto; }
         #toolbar {
-            background: rgba(15, 23, 42, 0.9); padding: 15px; display: flex; justify-content: center; gap: 15px;
-            pointer-events: auto; border-top: 2px solid #334155;
+            background: rgba(15, 23, 42, 0.95); padding: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+            border-top: 2px solid #334155; border-radius: 15px 15px 0 0; max-width: 800px;
         }
         
         .tower-btn {
-            background: #1e293b; border: 2px solid #475569; color: white; padding: 10px 20px;
-            border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; width: 100px;
+            background: #1e293b; border: 2px solid #475569; color: white; padding: 8px 12px;
+            border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; width: 110px;
         }
-        .tower-btn:hover { background: #334155; border-color: #94a3b8; transform: translateY(-3px); }
-        .tower-btn.selected { border-color: #fbbf24; background: #334155; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
-        .tower-name { font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; }
-        .tower-cost { color: #fbbf24; font-size: 0.9rem; }
+        .tower-btn:hover { background: #334155; border-color: #94a3b8; transform: translateY(-2px); }
+        .tower-btn.selected { border-color: #fbbf24; background: #334155; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+        .tower-name { font-weight: bold; margin-bottom: 2px; font-size: 1rem; }
+        .tower-desc { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tower-cost { color: #fbbf24; font-size: 0.9rem; font-weight: bold; }
 
-        /* Upgrade Panel Overlay */
         #upgrade-panel {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(15, 23, 42, 0.95); padding: 30px; border-radius: 15px;
             border: 2px solid #fbbf24; display: none; pointer-events: auto; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 10;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9); z-index: 10;
         }
         #upgrade-panel h2 { margin: 0 0 10px 0; color: #fbbf24; }
-        #upgrade-stats { margin-bottom: 20px; color: #cbd5e1; font-size: 1.1rem; }
+        #upgrade-stats { margin-bottom: 20px; color: #cbd5e1; font-size: 1.1rem; line-height: 1.5; }
         .action-btn { background: #10b981; color: white; border: none; padding: 10px 20px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
         .action-btn:hover { background: #34d399; }
-        #close-btn { background: #64748b; }
-        #close-btn:hover { background: #94a3b8; }
+        #close-btn { background: #ef4444; }
+        #close-btn:hover { background: #f87171; }
 
         #start-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95);
             display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 20;
         }
-        #start-screen h1 { font-size: 4rem; color: #fbbf24; margin-bottom: 20px; text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
-        #start-btn { font-size: 2rem; padding: 15px 40px; background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        #start-screen h1 { font-size: 4rem; color: #fbbf24; margin-bottom: 10px; text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); letter-spacing: 2px; }
+        #start-screen p { font-size: 1.2rem; color: #94a3b8; margin-bottom: 30px; max-width: 600px; text-align: center; }
+        #start-btn { font-size: 1.8rem; padding: 15px 40px; background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s;}
+        #start-btn:hover { background: #7dd3fc; box-shadow: 0 0 20px #38bdf8; transform: scale(1.05); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1>TOWER DEFENSE</h1>
+        <h1>GRAND ARSENAL</h1>
+        <p>10 unique towers. A massive winding path. Enemies that scale aggressively.<br>Build economy generators to survive the late game.</p>
         <button id="start-btn" onclick="startGame()">START WAVE 1</button>
     </div>
 
@@ -66,45 +69,31 @@
         <div id="top-bar">
             <div class="stat" id="health">❤️ Castle: 100</div>
             <div class="stat" id="wave">Wave: 1</div>
-            <div class="stat" id="money">💰 Money: $150</div>
+            <div class="stat" id="money">💰 Bank: $250</div>
         </div>
         
-        <div id="toolbar">
-            <div class="tower-btn selected" onclick="selectTower('Gatling')" id="btn-Gatling">
-                <div class="tower-name">Gatling</div><div class="tower-cost">$50</div>
-            </div>
-            <div class="tower-btn" onclick="selectTower('Sniper')" id="btn-Sniper">
-                <div class="tower-name">Sniper</div><div class="tower-cost">$100</div>
-            </div>
-            <div class="tower-btn" onclick="selectTower('Cannon')" id="btn-Cannon">
-                <div class="tower-name">Cannon</div><div class="tower-cost">$120</div>
-            </div>
-            <div class="tower-btn" onclick="selectTower('Laser')" id="btn-Laser">
-                <div class="tower-name">Laser</div><div class="tower-cost">$200</div>
-            </div>
-            <div class="tower-btn" onclick="selectTower('Tesla')" id="btn-Tesla">
-                <div class="tower-name">Tesla</div><div class="tower-cost">$250</div>
-            </div>
+        <div id="toolbar-container">
+            <div id="toolbar">
+                </div>
         </div>
     </div>
 
     <div id="upgrade-panel">
         <h2 id="up-title">Tower Level 1</h2>
         <div id="upgrade-stats">Damage: 10<br>Range: 3</div>
-        <button class="action-btn" id="up-btn" onclick="upgradeSelectedTower()">Upgrade ($50)</button>
+        <button class="action-btn" id="up-btn" onclick="upgradeSelectedTower()">Upgrade</button>
+        <button class="action-btn" id="sell-btn" onclick="sellSelectedTower()">Sell</button>
         <button class="action-btn" id="close-btn" onclick="closeUpgradePanel()">Close</button>
     </div>
 
     <script>
         // --- 1. SETUP THREE.JS (ISOMETRIC CAMERA) ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a2e);
+        scene.background = new THREE.Color(0x0f172a);
 
         const aspect = window.innerWidth / window.innerHeight;
-        const d = 12; // Camera view size
+        const d = 14; // Wider view for bigger map
         const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
-        
-        // Exact isometric angle
         camera.position.set(20, 20, 20);
         camera.lookAt(0, 0, 0);
 
@@ -112,15 +101,14 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
         dirLight.position.set(10, 20, 10);
-        dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // --- 2. GAME DATA & ECONOMY ---
-        let money = 150;
+        // --- 2. GAME DATA & 10 TOWER TYPES ---
+        let money = 250; // Higher starting cash for bigger map
         let health = 100;
         let wave = 1;
         let isRunning = false;
@@ -128,87 +116,96 @@
         let activeTowerForUpgrade = null;
 
         const TOWER_DATA = {
-            'Gatling': { cost: 50, color: 0x94a3b8, range: 3.5, damage: 5, fireRate: 10, type: 'bullet' },
-            'Sniper':  { cost: 100, color: 0xef4444, range: 8, damage: 40, fireRate: 60, type: 'bullet' },
-            'Cannon':  { cost: 120, color: 0xf97316, range: 4, damage: 15, fireRate: 40, type: 'splash', splashRadius: 2 },
-            'Laser':   { cost: 200, color: 0x38bdf8, range: 5, damage: 2, fireRate: 1, type: 'beam' }, // High tick rate
-            'Tesla':   { cost: 250, color: 0xa855f7, range: 2.5, damage: 10, fireRate: 30, type: 'aura' }
+            'Gatling':   { cost: 50,  color: 0x94a3b8, range: 3.5, damage: 8, fireRate: 10, type: 'bullet', desc: 'Fast single target' },
+            'Sniper':    { cost: 100, color: 0xef4444, range: 10,  damage: 50, fireRate: 60, type: 'bullet', desc: 'Extreme range/dmg' },
+            'Cannon':    { cost: 120, color: 0xf97316, range: 4,   damage: 20, fireRate: 45, type: 'splash', splashRadius: 2, desc: 'Area splash dmg' },
+            'Frost':     { cost: 150, color: 0x60a5fa, range: 3.5, damage: 5, fireRate: 30, type: 'slow', desc: 'Slows enemies 50%' },
+            'Poison':    { cost: 180, color: 0x22c55e, range: 3,   damage: 2, fireRate: 20, type: 'poison', desc: 'Damage over time' },
+            'Laser':     { cost: 200, color: 0x38bdf8, range: 5,   damage: 3, fireRate: 1, type: 'beam', desc: 'Continuous beam' },
+            'Tesla':     { cost: 250, color: 0xa855f7, range: 3,   damage: 15, fireRate: 40, type: 'aura', desc: 'Hits all in range' },
+            'Railgun':   { cost: 300, color: 0xfde047, range: 8,   damage: 40, fireRate: 80, type: 'pierce', pierceCount: 3, desc: 'Shoots through targets' },
+            'Missile':   { cost: 400, color: 0xec4899, range: 12,  damage: 80, fireRate: 100, type: 'homing', splashRadius: 3, desc: 'Homing massive AOE' },
+            'Generator': { cost: 200, color: 0xeab308, range: 0,   damage: 0, fireRate: 0, type: 'econ', desc: 'Generates $50/wave' }
         };
 
-        const UPGRADE_MULTIPLIER = 1.4; // 40% stat boost per level
+        const UPGRADE_MULTIPLIER = 1.35; 
         const MAX_LEVEL = 5;
 
         let towers = [];
         let enemies = [];
         let projectiles = [];
 
-        // --- 3. MAP GENERATION (GRID & PATH) ---
+        // Build UI Toolbar dynamically
+        const toolbar = document.getElementById('toolbar');
+        for (const [key, data] of Object.entries(TOWER_DATA)) {
+            const btn = document.createElement('div');
+            btn.className = `tower-btn ${key === 'Gatling' ? 'selected' : ''}`;
+            btn.id = `btn-${key}`;
+            btn.onclick = () => selectTower(key);
+            btn.innerHTML = `<div class="tower-name">${key}</div><div class="tower-desc">${data.desc}</div><div class="tower-cost">$${data.cost}</div>`;
+            toolbar.appendChild(btn);
+        }
+
+        // --- 3. EXPANDED MAP GENERATION (16x16 Winding Snake) ---
         const gridSize = 1;
-        const offset = 7; // Center the 15x15 map
+        const offset = 7.5; // Center 16x16
         
         // 0: Grass, 1: Path, 2: Castle
         const mapLayout = [
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
-            [0,0,1,1,1,1,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,1,1,1,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,2,2,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,2,2,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+            [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0],
+            [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0]
         ];
 
-        // Hardcoded waypoints for the exact path above (x, z coordinates)
+        // Ensure these perfectly trace the '1's in the array above (x = col, z = row)
         const waypoints = [
-            {x: 0, z: 1}, {x: 2, z: 1}, {x: 2, z: 2}, {x: 5, z: 2}, 
-            {x: 5, z: 4}, {x: 9, z: 4}, {x: 9, z: 6}, {x: 11, z: 6},
-            {x: 11, z: 8}, {x: 13, z: 8}, {x: 13, z: 11}, {x: 12.5, z: 11.5} // Ends at castle
+            {x: 1, z: 0}, {x: 1, z: 1}, {x: 14, z: 1}, {x: 14, z: 5}, 
+            {x: 2, z: 5}, {x: 2, z: 9}, {x: 14, z: 9}, {x: 14, z: 13}, 
+            {x: 8, z: 13}, {x: 8, z: 15}
         ];
 
         const tiles = [];
-        const grassMat = new THREE.MeshPhongMaterial({ color: 0x2d5a27 });
-        const pathMat = new THREE.MeshPhongMaterial({ color: 0x8b5a2b });
+        const grassMat = new THREE.MeshPhongMaterial({ color: 0x166534 }); // Darker grass
+        const pathMat = new THREE.MeshPhongMaterial({ color: 0x78350f });  // Dark dirt
         const tileGeo = new THREE.BoxGeometry(gridSize, 0.2, gridSize);
 
         for (let z = 0; z < mapLayout.length; z++) {
             for (let x = 0; x < mapLayout[z].length; x++) {
                 let type = mapLayout[z][x];
-                if (type === 2) continue; // Castle drawn separately
+                if (type === 2) continue;
 
                 let mat = type === 1 ? pathMat : grassMat;
                 let mesh = new THREE.Mesh(tileGeo, mat);
                 mesh.position.set(x - offset, 0, z - offset);
                 scene.add(mesh);
 
-                if (type === 0) {
-                    // Grass tiles can hold towers
-                    tiles.push({ mesh: mesh, gridX: x, gridZ: z, occupied: false });
-                }
+                if (type === 0) tiles.push({ mesh: mesh, gridX: x, gridZ: z, occupied: false });
             }
         }
 
-        // --- 4. PROCEDURAL CASTLE BUILDER ---
+        // --- 4. CASTLE ---
         const castleGroup = new THREE.Group();
         scene.add(castleGroup);
-        // Position at the 2,2 area of the map
-        castleGroup.position.set(12.5 - offset, 0.1, 12.5 - offset);
+        castleGroup.position.set(8 - offset, 0.1, 15 - offset);
 
-        const stoneMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1 });
-        const roofMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6 });
-        
-        // Main Keep
+        const stoneMat = new THREE.MeshPhongMaterial({ color: 0x94a3b8 });
+        const roofMat = new THREE.MeshPhongMaterial({ color: 0xb91c1c });
         castleGroup.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), stoneMat));
         
-        // Corner Towers
-        const offsets = [[-1,-1], [1,-1], [-1,1], [1,1]];
-        offsets.forEach(off => {
+        [[-1,-1], [1,-1], [-1,1], [1,1]].forEach(off => {
             let tower = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), stoneMat);
             tower.position.set(off[0], 1.5, off[1]);
             let roof = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 8), roofMat);
@@ -217,65 +214,62 @@
             castleGroup.add(roof);
         });
 
-        // --- 5. PROCEDURAL TOWER GENERATOR ---
+        // --- 5. TOWER GENERATOR (10 Unique Visuals) ---
         function createTowerMesh(type, level) {
             const group = new THREE.Group();
             const color = TOWER_DATA[type].color;
             const mat = new THREE.MeshPhongMaterial({ color: color });
-            const detailMat = new THREE.MeshPhongMaterial({ color: 0x334155 });
+            const darkMat = new THREE.MeshPhongMaterial({ color: 0x1e293b });
 
-            // Base changes per tier size
             const scale = 1 + (level * 0.1);
-            const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5 * scale, 0.8), detailMat);
+            const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5 * scale, 0.8), darkMat);
             base.position.y = 0.25 * scale;
             group.add(base);
 
-            // Turret Head
             const head = new THREE.Group();
             head.position.y = 0.5 * scale + 0.2;
 
-            if (type === 'Gatling') {
-                head.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.6), mat));
-                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8), detailMat);
-                barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.4;
+            // Distinct geometry for all 10 types
+            if (type === 'Gatling' || type === 'Sniper') {
+                head.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), mat));
+                let bLen = type === 'Sniper' ? 1.5 : 0.8;
+                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, bLen), darkMat);
+                barrel.rotation.x = Math.PI / 2; barrel.position.z = bLen/2;
                 head.add(barrel);
-            } else if (type === 'Sniper') {
-                head.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6), mat));
-                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), detailMat);
-                barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.75;
-                head.add(barrel);
-            } else if (type === 'Cannon') {
+            } else if (type === 'Cannon' || type === 'Missile') {
                 head.add(new THREE.Mesh(new THREE.SphereGeometry(0.4), mat));
-                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8), detailMat);
+                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.8), darkMat);
                 barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.4;
                 head.add(barrel);
-            } else if (type === 'Laser') {
-                let crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.4), mat);
-                crystal.position.y = 0.2;
+            } else if (type === 'Frost') {
+                let crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.5), mat);
                 head.add(crystal);
+            } else if (type === 'Poison') {
+                let vat = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.6), mat);
+                head.add(vat);
+            } else if (type === 'Laser' || type === 'Railgun') {
+                let shape = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.8), mat);
+                head.add(shape);
             } else if (type === 'Tesla') {
                 let coil = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 16), mat);
-                coil.rotation.x = Math.PI / 2;
-                head.add(coil);
-                let coil2 = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.1, 8, 16), mat);
-                coil2.rotation.x = Math.PI / 2; coil2.position.y = 0.3;
-                head.add(coil2);
+                coil.rotation.x = Math.PI / 2; head.add(coil);
+            } else if (type === 'Generator') {
+                let gear = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.2, 8), mat);
+                head.add(gear);
+                head.userData.spin = true; // Set to spin in animation loop
             }
             
             group.add(head);
-            group.userData.head = head; // Store reference to rotate it later
+            group.userData.head = head;
 
-            // Tier Indicator (Glowing Rings)
             if (level > 1) {
                 const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
                 for(let i=1; i<level; i++) {
                     let ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 4, 16), ringMat);
-                    ring.rotation.x = Math.PI/2;
-                    ring.position.y = (i * 0.15);
+                    ring.rotation.x = Math.PI/2; ring.position.y = (i * 0.15);
                     group.add(ring);
                 }
             }
-
             return group;
         }
 
@@ -290,25 +284,23 @@
         }
 
         window.addEventListener('pointerdown', (e) => {
-            if (e.target.tagName === 'BUTTON' || !isRunning) return; // Ignore UI clicks
+            if (e.target.tagName === 'BUTTON' || !isRunning) return;
 
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            // 1. Check if clicking an existing tower to upgrade
+            // Check Towers
             const towerIntersects = raycaster.intersectObjects(towers.map(t => t.mesh), true);
             if (towerIntersects.length > 0) {
-                // Find parent tower object
                 let clickedMesh = towerIntersects[0].object;
                 while(clickedMesh.parent && clickedMesh.parent.type !== 'Scene') { clickedMesh = clickedMesh.parent; }
-                
                 const t = towers.find(tw => tw.mesh === clickedMesh);
                 if (t) openUpgradePanel(t);
                 return;
             }
 
-            // 2. Check if clicking a grass tile to build
+            // Check Grid Build
             const tileIntersects = raycaster.intersectObjects(tiles.map(t => t.mesh));
             if (tileIntersects.length > 0) {
                 let tileMesh = tileIntersects[0].object;
@@ -318,7 +310,6 @@
                     let data = TOWER_DATA[selectedTowerType];
                     if (money >= data.cost) {
                         money -= data.cost;
-                        updateUI();
                         
                         let mesh = createTowerMesh(selectedTowerType, 1);
                         mesh.position.set(tileMesh.position.x, 0.1, tileMesh.position.z);
@@ -326,19 +317,21 @@
 
                         towers.push({
                             type: selectedTowerType, level: 1, mesh: mesh, head: mesh.userData.head,
-                            x: tileMesh.position.x, z: tileMesh.position.z,
+                            x: tileMesh.position.x, z: tileMesh.position.z, tile: tileData,
                             range: data.range, damage: data.damage, fireRate: data.fireRate,
-                            typeAttack: data.type, cooldown: 0, cost: data.cost, splashRadius: data.splashRadius
+                            typeAttack: data.type, cooldown: 0, cost: data.cost, 
+                            splashRadius: data.splashRadius, pierceCount: data.pierceCount
                         });
                         
                         tileData.occupied = true;
+                        updateUI();
                         closeUpgradePanel();
                     }
                 }
             }
         });
 
-        // --- 7. UPGRADE SYSTEM ---
+        // --- 7. UPGRADES & SELLING ---
         function openUpgradePanel(tower) {
             activeTowerForUpgrade = tower;
             document.getElementById('upgrade-panel').style.display = 'block';
@@ -354,35 +347,41 @@
             if (!activeTowerForUpgrade) return;
             const t = activeTowerForUpgrade;
             document.getElementById('up-title').innerText = `${t.type} - Level ${t.level}`;
-            document.getElementById('upgrade-stats').innerHTML = `Damage: ${Math.floor(t.damage)}<br>Range: ${t.range.toFixed(1)}`;
             
-            const btn = document.getElementById('up-btn');
-            if (t.level >= MAX_LEVEL) {
-                btn.innerText = "MAX LEVEL";
-                btn.disabled = true;
-                btn.style.background = "#64748b";
+            let statsHtml = '';
+            if (t.type === 'Generator') {
+                statsHtml = `Generates $${Math.floor(50 * Math.pow(1.5, t.level-1))} / wave`;
             } else {
-                let upCost = Math.floor(t.cost * 0.8);
-                btn.innerText = `Upgrade ($${upCost})`;
-                btn.disabled = false;
-                btn.style.background = money >= upCost ? "#10b981" : "#ef4444";
+                statsHtml = `Damage: ${Math.floor(t.damage)}<br>Range: ${t.range.toFixed(1)}`;
+            }
+            document.getElementById('upgrade-stats').innerHTML = statsHtml;
+            
+            const upBtn = document.getElementById('up-btn');
+            const sellBtn = document.getElementById('sell-btn');
+            
+            let sellVal = Math.floor((t.cost) * 0.5);
+            sellBtn.innerText = `Sell ($${sellVal})`;
+
+            if (t.level >= MAX_LEVEL) {
+                upBtn.innerText = "MAX LEVEL"; upBtn.disabled = true; upBtn.style.background = "#64748b";
+            } else {
+                let upCost = Math.floor(TOWER_DATA[t.type].cost * Math.pow(1.5, t.level));
+                upBtn.innerText = `Upgrade ($${upCost})`; upBtn.disabled = false;
+                upBtn.style.background = money >= upCost ? "#10b981" : "#ef4444";
             }
         }
 
         function upgradeSelectedTower() {
             if (!activeTowerForUpgrade || activeTowerForUpgrade.level >= MAX_LEVEL) return;
-            let upCost = Math.floor(activeTowerForUpgrade.cost * 0.8);
+            let upCost = Math.floor(TOWER_DATA[activeTowerForUpgrade.type].cost * Math.pow(1.5, activeTowerForUpgrade.level));
             
             if (money >= upCost) {
                 money -= upCost;
-                
-                // Boost Stats
                 activeTowerForUpgrade.level++;
                 activeTowerForUpgrade.damage *= UPGRADE_MULTIPLIER;
-                activeTowerForUpgrade.range *= 1.1; // Range goes up slowly
-                activeTowerForUpgrade.cost += upCost; // Increases next upgrade cost
+                activeTowerForUpgrade.range *= 1.1; 
+                activeTowerForUpgrade.cost += upCost; 
 
-                // Rebuild Mesh to show new visual tier
                 scene.remove(activeTowerForUpgrade.mesh);
                 let newMesh = createTowerMesh(activeTowerForUpgrade.type, activeTowerForUpgrade.level);
                 newMesh.position.set(activeTowerForUpgrade.x, 0.1, activeTowerForUpgrade.z);
@@ -391,24 +390,39 @@
                 activeTowerForUpgrade.head = newMesh.userData.head;
 
                 updateUI();
-                updateUpgradeUI();
             }
         }
 
-        // --- 8. ENEMIES & COMBAT ---
-        const enemyGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-        const enemyMat = new THREE.MeshPhongMaterial({ color: 0xef4444 });
+        function sellSelectedTower() {
+            if (!activeTowerForUpgrade) return;
+            money += Math.floor(activeTowerForUpgrade.cost * 0.5);
+            activeTowerForUpgrade.tile.occupied = false;
+            scene.remove(activeTowerForUpgrade.mesh);
+            towers = towers.filter(t => t !== activeTowerForUpgrade);
+            updateUI();
+            closeUpgradePanel();
+        }
+
+        // --- 8. COMBAT LOGIC (ENEMIES, DoT, Slow) ---
+        const enemyGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 
         function spawnEnemy() {
-            let mesh = new THREE.Mesh(enemyGeo, enemyMat);
+            // Scale HP significantly higher over time
+            let hp = Math.floor(15 * Math.pow(1.35, wave - 1)); 
+            
+            // Random enemy colors based on wave
+            let eColor = new THREE.Color().setHSL((wave * 0.1) % 1, 0.8, 0.5);
+            let mat = new THREE.MeshPhongMaterial({ color: eColor });
+            let mesh = new THREE.Mesh(enemyGeo, mat);
+            
             let start = waypoints[0];
-            mesh.position.set(start.x - offset, 0.4, start.z - offset);
+            mesh.position.set(start.x - offset, 0.25, start.z - offset);
             scene.add(mesh);
 
-            // Scale enemy HP by wave
             enemies.push({
-                mesh: mesh, wpIndex: 0, hp: 20 * Math.pow(1.2, wave - 1), maxHp: 20 * Math.pow(1.2, wave - 1),
-                x: mesh.position.x, z: mesh.position.z, active: true
+                mesh: mesh, wpIndex: 0, hp: hp, maxHp: hp,
+                x: mesh.position.x, z: mesh.position.z, active: true,
+                speedMod: 1.0, poisonDmg: 0 // Status Effects
             });
         }
 
@@ -429,14 +443,20 @@
             if (activeTowerForUpgrade) updateUpgradeUI();
         }
 
-        // Visual effects
-        function drawLaser(x1, z1, x2, z2, colorStr) {
-            const material = new THREE.LineBasicMaterial({ color: colorStr });
-            const points = [new THREE.Vector3(x1, 1, z1), new THREE.Vector3(x2, 0.5, z2)];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-            setTimeout(() => scene.remove(line), 50); // Flash briefly
+        function drawEffect(x1, z1, x2, z2, colorStr, isLine = true) {
+            if (isLine) {
+                const material = new THREE.LineBasicMaterial({ color: colorStr });
+                const points = [new THREE.Vector3(x1, 0.8, z1), new THREE.Vector3(x2, 0.5, z2)];
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+                scene.add(line);
+                setTimeout(() => scene.remove(line), 80);
+            } else {
+                // Splash / Aura ring
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(x2, 0.1, 4, 16), new THREE.MeshBasicMaterial({color: colorStr}));
+                ring.rotation.x = Math.PI/2; ring.position.set(x1, 0.5, z1);
+                scene.add(ring);
+                setTimeout(() => scene.remove(ring), 150);
+            }
         }
 
         // --- 9. MAIN GAME LOOP ---
@@ -446,71 +466,86 @@
 
             // Spawning
             spawnTimer++;
-            if (spawnTimer > 60 && enemiesToSpawn > 0) {
+            if (spawnTimer > 50 && enemiesToSpawn > 0) {
                 spawnEnemy();
                 spawnTimer = 0;
                 enemiesToSpawn--;
             }
 
-            // Move Enemies
+            // Process Enemies
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
                 if (!e.active) { enemies.splice(i, 1); continue; }
 
-                let targetWp = waypoints[e.wpIndex + 1];
-                if (!targetWp) {
-                    // Reached Castle!
-                    health -= 10;
-                    e.active = false;
-                    scene.remove(e.mesh);
-                    updateUI();
-                    if (health <= 0) { isRunning = false; alert("GAME OVER! Castle Destroyed."); }
+                // Poison Damage Tick (DoT)
+                if (e.poisonDmg > 0) {
+                    e.hp -= e.poisonDmg * 0.05; // Apply fraction per frame
+                    e.poisonDmg *= 0.99; // Wears off slowly
+                    e.mesh.material.color.setHex(0x22c55e); // Turn green
+                } else if (e.speedMod < 1) {
+                    e.mesh.material.color.setHex(0x60a5fa); // Turn blue if slowed
+                }
+
+                if (e.hp <= 0) {
+                    e.active = false; scene.remove(e.mesh); money += 2 + Math.floor(wave/2); updateUI();
                     continue;
                 }
 
-                // Calculate movement
-                let tx = targetWp.x - offset;
-                let tz = targetWp.z - offset;
-                let dx = tx - e.x;
-                let dz = tz - e.z;
+                // Recover speed slowly if slowed
+                if (e.speedMod < 1.0) e.speedMod += 0.005; 
+                if (e.speedMod > 1.0) e.speedMod = 1.0;
+
+                // Move
+                let targetWp = waypoints[e.wpIndex + 1];
+                if (!targetWp) {
+                    health -= 10; e.active = false; scene.remove(e.mesh); updateUI();
+                    if (health <= 0) { isRunning = false; alert("GAME OVER! Castle Destroyed. Reached Wave " + wave); }
+                    continue;
+                }
+
+                let tx = targetWp.x - offset; let tz = targetWp.z - offset;
+                let dx = tx - e.x; let dz = tz - e.z;
                 let dist = Math.sqrt(dx*dx + dz*dz);
                 
-                let speed = 0.03;
-                if (dist < speed) {
-                    e.wpIndex++; // Reached waypoint
+                let baseSpeed = 0.04;
+                let finalSpeed = baseSpeed * e.speedMod;
+
+                if (dist < finalSpeed) {
+                    e.wpIndex++; 
                 } else {
-                    e.x += (dx / dist) * speed;
-                    e.z += (dz / dist) * speed;
-                    e.mesh.position.set(e.x, 0.4, e.z);
+                    e.x += (dx / dist) * finalSpeed; e.z += (dz / dist) * finalSpeed;
+                    e.mesh.position.set(e.x, 0.25, e.z);
                 }
             }
 
-            // Tower Logic
+            // Process Towers
             towers.forEach(t => {
+                // Generators just spin
+                if (t.type === 'Generator') {
+                    if(t.head.userData.spin) t.head.rotation.y += 0.05;
+                    return;
+                }
+
                 t.cooldown--;
                 
-                // Find Target
                 let target = null;
                 let minDist = t.range;
 
-                // Tesla Aura hits everything in range instantly
+                // Aura Instant Attack
                 if (t.typeAttack === 'aura' && t.cooldown <= 0) {
                     let zapped = false;
                     enemies.forEach(e => {
                         if(!e.active) return;
-                        let dist = Math.sqrt(Math.pow(e.x - t.x, 2) + Math.pow(e.z - t.z, 2));
-                        if (dist <= t.range) {
-                            e.hp -= t.damage;
-                            zapped = true;
-                            drawLaser(t.x, t.z, e.x, e.z, 0xa855f7); // Purple lightning
-                            if (e.hp <= 0) { e.active = false; scene.remove(e.mesh); money += 5; updateUI(); }
+                        if (Math.sqrt(Math.pow(e.x - t.x, 2) + Math.pow(e.z - t.z, 2)) <= t.range) {
+                            e.hp -= t.damage; zapped = true;
+                            drawEffect(t.x, t.z, e.x, e.z, 0xa855f7);
                         }
                     });
                     if (zapped) t.cooldown = t.fireRate;
                     return;
                 }
 
-                // Other towers target the closest enemy
+                // Find closest target
                 enemies.forEach(e => {
                     if (!e.active) return;
                     let dist = Math.sqrt(Math.pow(e.x - t.x, 2) + Math.pow(e.z - t.z, 2));
@@ -518,77 +553,105 @@
                 });
 
                 if (target) {
-                    // Look at target
                     t.head.lookAt(target.x, t.head.position.y, target.z);
 
                     if (t.cooldown <= 0) {
                         t.cooldown = t.fireRate;
 
                         if (t.typeAttack === 'beam') {
-                            // Continuous Laser
                             target.hp -= t.damage;
-                            drawLaser(t.x, t.z, target.x, target.z, 0x38bdf8);
-                            if (target.hp <= 0) { target.active = false; scene.remove(target.mesh); money += 5; updateUI(); }
-                        
-                        } else if (t.typeAttack === 'bullet' || t.typeAttack === 'splash') {
-                            // Create Projectile
-                            let pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: 0xffffff}));
-                            pMesh.position.set(t.x, 1, t.z);
+                            drawEffect(t.x, t.z, target.x, target.z, 0x38bdf8);
+                        } else {
+                            // Spawn Projectile
+                            let pMat = new THREE.MeshBasicMaterial({color: TOWER_DATA[t.type].color});
+                            let pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.15), pMat);
+                            pMesh.position.set(t.x, 0.8, t.z);
                             scene.add(pMesh);
+                            
+                            // Railgun aims at target, but doesn't track
+                            let dx = target.x - t.x; let dz = target.z - t.z;
+                            let norm = Math.sqrt(dx*dx + dz*dz);
+
                             projectiles.push({
                                 mesh: pMesh, x: t.x, z: t.z, target: target, 
-                                damage: t.damage, splash: t.splashRadius, active: true
+                                damage: t.damage, type: t.typeAttack, active: true,
+                                splash: t.splashRadius, pierceCount: t.pierceCount || 1, hitList: [],
+                                vx: (dx/norm), vz: (dz/norm) // Used for non-homing
                             });
                         }
                     }
                 }
             });
 
-            // Move Projectiles
+            // Process Projectiles
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let p = projectiles[i];
-                if (!p.active || !p.target.active) { 
-                    scene.remove(p.mesh); projectiles.splice(i, 1); continue; 
+                if (!p.active) { scene.remove(p.mesh); projectiles.splice(i, 1); continue; }
+
+                let speed = 0.3;
+                let dx, dz, dist;
+
+                // Homing vs Straight line
+                if (p.type === 'homing' || p.type === 'bullet' || p.type === 'splash' || p.type === 'slow' || p.type === 'poison') {
+                    if (!p.target.active) { p.active = false; continue; } // Target died
+                    dx = p.target.x - p.x; dz = p.target.z - p.z;
+                    dist = Math.sqrt(dx*dx + dz*dz);
+                    p.x += (dx / dist) * speed; p.z += (dz / dist) * speed;
+                } else if (p.type === 'pierce') {
+                    // Railgun moves in straight line
+                    speed = 0.6; // Much faster
+                    p.x += p.vx * speed; p.z += p.vz * speed;
+                    
+                    // Out of bounds check
+                    if (Math.abs(p.x) > 15 || Math.abs(p.z) > 15) p.active = false;
+                    
+                    // Collision check for pierce
+                    enemies.forEach(e => {
+                        if (!e.active || p.hitList.includes(e)) return;
+                        if (Math.sqrt(Math.pow(e.x - p.x, 2) + Math.pow(e.z - p.z, 2)) < 0.6) {
+                            e.hp -= p.damage;
+                            p.hitList.push(e);
+                            p.pierceCount--;
+                            drawEffect(p.x, p.z, p.x+0.1, p.z+0.1, 0xfde047, false);
+                        }
+                    });
+                    if (p.pierceCount <= 0) p.active = false;
                 }
 
-                let dx = p.target.x - p.x;
-                let dz = p.target.z - p.z;
-                let dist = Math.sqrt(dx*dx + dz*dz);
-                let speed = 0.2;
+                p.mesh.position.set(p.x, 0.5, p.z);
 
-                if (dist < speed) {
-                    // Hit!
+                // Normal Impact check
+                if (p.type !== 'pierce' && dist < speed) {
                     p.active = false;
-                    scene.remove(p.mesh);
 
-                    if (p.splash) {
-                        // Area of Effect Damage
+                    if (p.type === 'splash' || p.type === 'homing') {
                         enemies.forEach(e => {
                             if (!e.active) return;
-                            let sDist = Math.sqrt(Math.pow(e.x - p.target.x, 2) + Math.pow(e.z - p.target.z, 2));
-                            if (sDist <= p.splash) {
+                            if (Math.sqrt(Math.pow(e.x - p.target.x, 2) + Math.pow(e.z - p.target.z, 2)) <= p.splash) {
                                 e.hp -= p.damage;
-                                if (e.hp <= 0) { e.active = false; scene.remove(e.mesh); money += 5; updateUI(); }
                             }
                         });
-                        // Visual explosion ring
-                        drawLaser(p.target.x, p.target.z, p.target.x+0.1, p.target.z+0.1, 0xf97316); 
-                    } else {
-                        // Single Target Damage
+                        drawEffect(p.target.x, p.target.z, p.splash, 0, p.mesh.material.color.getHex(), false); 
+                    } else if (p.type === 'slow') {
                         p.target.hp -= p.damage;
-                        if (p.target.hp <= 0) { p.target.active = false; scene.remove(p.target.mesh); money += 5; updateUI(); }
+                        p.target.speedMod = 0.5; // Cut speed in half
+                    } else if (p.type === 'poison') {
+                        p.target.hp -= p.damage;
+                        p.target.poisonDmg += 5; // Stack poison
+                    } else {
+                        p.target.hp -= p.damage; // Standard bullet
                     }
-                } else {
-                    p.x += (dx / dist) * speed;
-                    p.z += (dz / dist) * speed;
-                    p.mesh.position.set(p.x, 1, p.z);
                 }
             }
 
-            // Wave Management
+            // End of Wave Logic
             if (enemiesToSpawn === 0 && enemies.length === 0 && isRunning) {
+                // Calculate Economy
+                let econGen = 0;
+                towers.forEach(t => { if(t.type === 'Generator') econGen += Math.floor(50 * Math.pow(1.5, t.level-1)); });
+                
                 wave++;
-                money += 50; // Wave completion bonus
+                money += 50 + econGen; // Wave bonus + Generators
                 updateUI();
                 enemiesToSpawn = 10 + (wave * 2);
             }
@@ -596,15 +659,10 @@
             renderer.render(scene, camera);
         }
 
-        // Handle Resizing
         window.addEventListener('resize', () => {
             const newAspect = window.innerWidth / window.innerHeight;
-            camera.left = -d * newAspect;
-            camera.right = d * newAspect;
-            camera.top = d;
-            camera.bottom = -d;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.left = -d * newAspect; camera.right = d * newAspect; camera.top = d; camera.bottom = -d;
+            camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
