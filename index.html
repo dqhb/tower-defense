@@ -3,317 +3,606 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>beat_thingy</title>
+    <title>tower defense</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #05020a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; user-select: none; }
         canvas { display: block; }
         
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+        /* UI Elements */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        #top-bar { padding: 15px 30px; display: flex; justify-content: space-between; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .stat { font-size: 1.5rem; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        #money { color: #fbbf24; }
+        #health { color: #ef4444; }
+        #wave { color: #38bdf8; }
+
+        /* Tower Selection Toolbar */
+        #toolbar {
+            background: rgba(15, 23, 42, 0.9); padding: 15px; display: flex; justify-content: center; gap: 15px;
+            pointer-events: auto; border-top: 2px solid #334155;
         }
         
-        #top-bar { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
-        
-        .stat-box { background: rgba(0,0,0,0.6); padding: 15px 25px; border-radius: 10px; border: 2px solid #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
-        .stat-label { font-size: 0.9rem; color: #d8b4fe; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
-        .stat-value { font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px #fff; margin: 0; }
-        
-        #combo-display { color: #facc15; text-shadow: 0 0 15px #facc15; transition: transform 0.1s; }
-        
-        #controls-overlay {
-            width: 100%; padding-bottom: 40px; text-align: center;
-            font-size: 1.2rem; color: rgba(255,255,255,0.5); letter-spacing: 5px; text-transform: uppercase;
+        .tower-btn {
+            background: #1e293b; border: 2px solid #475569; color: white; padding: 10px 20px;
+            border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; width: 100px;
         }
+        .tower-btn:hover { background: #334155; border-color: #94a3b8; transform: translateY(-3px); }
+        .tower-btn.selected { border-color: #fbbf24; background: #334155; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
+        .tower-name { font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; }
+        .tower-cost { color: #fbbf24; font-size: 0.9rem; }
+
+        /* Upgrade Panel Overlay */
+        #upgrade-panel {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.95); padding: 30px; border-radius: 15px;
+            border: 2px solid #fbbf24; display: none; pointer-events: auto; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 10;
+        }
+        #upgrade-panel h2 { margin: 0 0 10px 0; color: #fbbf24; }
+        #upgrade-stats { margin-bottom: 20px; color: #cbd5e1; font-size: 1.1rem; }
+        .action-btn { background: #10b981; color: white; border: none; padding: 10px 20px; font-size: 1.1rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
+        .action-btn:hover { background: #34d399; }
+        #close-btn { background: #64748b; }
+        #close-btn:hover { background: #94a3b8; }
 
         #start-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 2, 10, 0.9); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; pointer-events: auto; z-index: 10;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 20;
         }
-        #start-screen h1 { font-size: 4rem; color: #a855f7; text-shadow: 0 0 20px #a855f7; margin-bottom: 10px; letter-spacing: 4px; }
-        #start-btn {
-            background: #a855f7; color: white; border: none; padding: 15px 40px; font-size: 1.5rem;
-            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
-            margin-top: 30px; box-shadow: 0 0 20px #a855f7; transition: 0.2s;
-        }
-        #start-btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
-        
-        #flash-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: red; opacity: 0; pointer-events: none; transition: opacity 0.1s;
-        }
+        #start-screen h1 { font-size: 4rem; color: #fbbf24; margin-bottom: 20px; text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+        #start-btn { font-size: 2rem; padding: 15px 40px; background: #38bdf8; color: #0f172a; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="flash-overlay"></div>
-
     <div id="start-screen">
-        <h1>beat_thingy</h1>
-        <p style="color: white; font-size: 1.2rem;">home row: A S D F G H J K L</p>
-        <button id="start-btn" onclick="startGame()">SMASH</button>
+        <h1>TOWER DEFENSE</h1>
+        <button id="start-btn" onclick="startGame()">START WAVE 1</button>
     </div>
 
     <div id="ui-layer">
         <div id="top-bar">
-            <div class="stat-box">
-                <div class="stat-label">Score</div>
-                <div class="stat-value" id="score">0</div>
-            </div>
-            <div class="stat-box" style="text-align: right; border-color: #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.4);">
-                <div class="stat-label" style="color: #fef08a;">Combo</div>
-                <div class="stat-value" id="combo-display">x1</div>
-            </div>
+            <div class="stat" id="health">❤️ Castle: 100</div>
+            <div class="stat" id="wave">Wave: 1</div>
+            <div class="stat" id="money">💰 Money: $150</div>
         </div>
-        <div id="controls-overlay">
-            [ A ] [ S ] [ D ] [ F ] [ G ] [ H ] [ J ] [ K ] [ L ]
+        
+        <div id="toolbar">
+            <div class="tower-btn selected" onclick="selectTower('Gatling')" id="btn-Gatling">
+                <div class="tower-name">Gatling</div><div class="tower-cost">$50</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('Sniper')" id="btn-Sniper">
+                <div class="tower-name">Sniper</div><div class="tower-cost">$100</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('Cannon')" id="btn-Cannon">
+                <div class="tower-name">Cannon</div><div class="tower-cost">$120</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('Laser')" id="btn-Laser">
+                <div class="tower-name">Laser</div><div class="tower-cost">$200</div>
+            </div>
+            <div class="tower-btn" onclick="selectTower('Tesla')" id="btn-Tesla">
+                <div class="tower-name">Tesla</div><div class="tower-cost">$250</div>
+            </div>
         </div>
     </div>
 
-    <script>
-        // --- 1. SETUP THREE.JS ---
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x05020a, 0.015);
+    <div id="upgrade-panel">
+        <h2 id="up-title">Tower Level 1</h2>
+        <div id="upgrade-stats">Damage: 10<br>Range: 3</div>
+        <button class="action-btn" id="up-btn" onclick="upgradeSelectedTower()">Upgrade ($50)</button>
+        <button class="action-btn" id="close-btn" onclick="closeUpgradePanel()">Close</button>
+    </div>
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 8, 14); 
+    <script>
+        // --- 1. SETUP THREE.JS (ISOMETRIC CAMERA) ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const d = 12; // Camera view size
+        const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+        
+        // Exact isometric angle
+        camera.position.set(20, 20, 20);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
 
-        // --- 2. GAME VARIABLES ---
-        const keys = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-        const laneWidth = 2.2; 
-        const startX = -((keys.length - 1) * laneWidth) / 2; 
+        // --- 2. GAME DATA & ECONOMY ---
+        let money = 150;
+        let health = 100;
+        let wave = 1;
+        let isRunning = false;
+        let selectedTowerType = 'Gatling';
+        let activeTowerForUpgrade = null;
+
+        const TOWER_DATA = {
+            'Gatling': { cost: 50, color: 0x94a3b8, range: 3.5, damage: 5, fireRate: 10, type: 'bullet' },
+            'Sniper':  { cost: 100, color: 0xef4444, range: 8, damage: 40, fireRate: 60, type: 'bullet' },
+            'Cannon':  { cost: 120, color: 0xf97316, range: 4, damage: 15, fireRate: 40, type: 'splash', splashRadius: 2 },
+            'Laser':   { cost: 200, color: 0x38bdf8, range: 5, damage: 2, fireRate: 1, type: 'beam' }, // High tick rate
+            'Tesla':   { cost: 250, color: 0xa855f7, range: 2.5, damage: 10, fireRate: 30, type: 'aura' }
+        };
+
+        const UPGRADE_MULTIPLIER = 1.4; // 40% stat boost per level
+        const MAX_LEVEL = 5;
+
+        let towers = [];
+        let enemies = [];
+        let projectiles = [];
+
+        // --- 3. MAP GENERATION (GRID & PATH) ---
+        const gridSize = 1;
+        const offset = 7; // Center the 15x15 map
         
-        const hitZoneZ = 8;     
-        const hitTolerance = 2; 
-        const spawnZ = -80;     
-        const blockSpeed = 0.8; 
+        // 0: Grass, 1: Path, 2: Castle
+        const mapLayout = [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,1,1,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,2,2,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,2,2,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ];
 
-        let blocks = [];
-        let particles = [];
-        let score = 0;
-        let combo = 1;
-        let isPlaying = false;
-        let spawnInterval;
+        // Hardcoded waypoints for the exact path above (x, z coordinates)
+        const waypoints = [
+            {x: 0, z: 1}, {x: 2, z: 1}, {x: 2, z: 2}, {x: 5, z: 2}, 
+            {x: 5, z: 4}, {x: 9, z: 4}, {x: 9, z: 6}, {x: 11, z: 6},
+            {x: 11, z: 8}, {x: 13, z: 8}, {x: 13, z: 11}, {x: 12.5, z: 11.5} // Ends at castle
+        ];
 
-        // --- 3. DYNAMIC TEXTURES & ENVIRONMENT ---
-        const gridHelper = new THREE.GridHelper(200, 100, 0xa855f7, 0x4c1d95);
-        gridHelper.position.y = -0.5;
-        scene.add(gridHelper);
+        const tiles = [];
+        const grassMat = new THREE.MeshPhongMaterial({ color: 0x2d5a27 });
+        const pathMat = new THREE.MeshPhongMaterial({ color: 0x8b5a2b });
+        const tileGeo = new THREE.BoxGeometry(gridSize, 0.2, gridSize);
 
-        const hitZoneGeo = new THREE.PlaneGeometry(laneWidth * 0.8, laneWidth * 0.8);
-        hitZoneGeo.rotateX(-Math.PI / 2); 
-        const targetPads = [];
-        const laneTextures = [];
+        for (let z = 0; z < mapLayout.length; z++) {
+            for (let x = 0; x < mapLayout[z].length; x++) {
+                let type = mapLayout[z][x];
+                if (type === 2) continue; // Castle drawn separately
 
-        // Function to create a canvas texture with a letter on it
-        function createLetterTexture(letter, hexColor) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
+                let mat = type === 1 ? pathMat : grassMat;
+                let mesh = new THREE.Mesh(tileGeo, mat);
+                mesh.position.set(x - offset, 0, z - offset);
+                scene.add(mesh);
 
-            // Dark background for the block
-            ctx.fillStyle = '#111111'; 
-            ctx.fillRect(0, 0, 256, 256);
-
-            // Neon Border
-            ctx.strokeStyle = hexColor;
-            ctx.lineWidth = 15;
-            ctx.strokeRect(0, 0, 256, 256);
-
-            // Draw the Letter
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = hexColor;
-            ctx.shadowBlur = 20; // Neon glow effect on text
-            ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(letter.toUpperCase(), 128, 140);
-
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        for (let i = 0; i < keys.length; i++) {
-            const hue = 0.5 + (i / keys.length) * 0.4;
-            const laneColor = new THREE.Color().setHSL(hue, 1, 0.6);
-            
-            // Generate and store the texture for this specific lane
-            const hexColorString = '#' + laneColor.getHexString();
-            laneTextures.push(createLetterTexture(keys[i], hexColorString));
-            
-            const padMat = new THREE.MeshBasicMaterial({ color: laneColor, transparent: true, opacity: 0.3, wireframe: true });
-            const pad = new THREE.Mesh(hitZoneGeo, padMat);
-            
-            pad.position.set(startX + i * laneWidth, 0.01, hitZoneZ);
-            scene.add(pad);
-            targetPads.push({ mesh: pad, color: laneColor, originalY: 0.01 });
-        }
-
-        // --- 4. BLOCK SPAWNING & EXPLOSIONS ---
-        const blockGeo = new THREE.BoxGeometry(laneWidth * 0.8, laneWidth * 0.8, laneWidth * 0.8);
-
-        function spawnBlock() {
-            if (!isPlaying) return;
-            
-            const laneIndex = Math.floor(Math.random() * keys.length);
-            const laneColor = targetPads[laneIndex].color;
-            
-            // Apply the generated texture mapping
-            const blockMat = new THREE.MeshPhongMaterial({ 
-                map: laneTextures[laneIndex],
-                emissive: laneColor, 
-                emissiveIntensity: 0.1 // Kept low so the texture is highly visible
-            });
-            
-            const block = new THREE.Mesh(blockGeo, blockMat);
-            block.position.set(startX + laneIndex * laneWidth, laneWidth/2, spawnZ);
-            scene.add(block);
-            
-            blocks.push({ mesh: block, lane: laneIndex, z: spawnZ, active: true });
-        }
-
-        const particleGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-
-        function createExplosion(x, y, z, color) {
-            const mat = new THREE.MeshBasicMaterial({ color: color });
-            for (let i = 0; i < 15; i++) {
-                const p = new THREE.Mesh(particleGeo, mat);
-                p.position.set(x, y, z);
-                scene.add(p);
-                particles.push({
-                    mesh: p,
-                    vx: (Math.random() - 0.5) * 1.5,
-                    vy: Math.random() * 1.5,
-                    vz: (Math.random() - 0.5) * 1.5,
-                    life: 1.0 
-                });
+                if (type === 0) {
+                    // Grass tiles can hold towers
+                    tiles.push({ mesh: mesh, gridX: x, gridZ: z, occupied: false });
+                }
             }
         }
 
-        // --- 5. GAME LOGIC ---
-        function resetCombo() {
-            combo = 1;
-            document.getElementById('combo-display').innerText = `x${combo}`;
-            document.getElementById('combo-display').style.color = '#fff';
+        // --- 4. PROCEDURAL CASTLE BUILDER ---
+        const castleGroup = new THREE.Group();
+        scene.add(castleGroup);
+        // Position at the 2,2 area of the map
+        castleGroup.position.set(12.5 - offset, 0.1, 12.5 - offset);
+
+        const stoneMat = new THREE.MeshPhongMaterial({ color: 0xcbd5e1 });
+        const roofMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6 });
+        
+        // Main Keep
+        castleGroup.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), stoneMat));
+        
+        // Corner Towers
+        const offsets = [[-1,-1], [1,-1], [-1,1], [1,1]];
+        offsets.forEach(off => {
+            let tower = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), stoneMat);
+            tower.position.set(off[0], 1.5, off[1]);
+            let roof = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 8), roofMat);
+            roof.position.set(off[0], 3.5, off[1]);
+            castleGroup.add(tower);
+            castleGroup.add(roof);
+        });
+
+        // --- 5. PROCEDURAL TOWER GENERATOR ---
+        function createTowerMesh(type, level) {
+            const group = new THREE.Group();
+            const color = TOWER_DATA[type].color;
+            const mat = new THREE.MeshPhongMaterial({ color: color });
+            const detailMat = new THREE.MeshPhongMaterial({ color: 0x334155 });
+
+            // Base changes per tier size
+            const scale = 1 + (level * 0.1);
+            const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5 * scale, 0.8), detailMat);
+            base.position.y = 0.25 * scale;
+            group.add(base);
+
+            // Turret Head
+            const head = new THREE.Group();
+            head.position.y = 0.5 * scale + 0.2;
+
+            if (type === 'Gatling') {
+                head.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.6), mat));
+                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.8), detailMat);
+                barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.4;
+                head.add(barrel);
+            } else if (type === 'Sniper') {
+                head.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6), mat));
+                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5), detailMat);
+                barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.75;
+                head.add(barrel);
+            } else if (type === 'Cannon') {
+                head.add(new THREE.Mesh(new THREE.SphereGeometry(0.4), mat));
+                let barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.8), detailMat);
+                barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.4;
+                head.add(barrel);
+            } else if (type === 'Laser') {
+                let crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.4), mat);
+                crystal.position.y = 0.2;
+                head.add(crystal);
+            } else if (type === 'Tesla') {
+                let coil = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 16), mat);
+                coil.rotation.x = Math.PI / 2;
+                head.add(coil);
+                let coil2 = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.1, 8, 16), mat);
+                coil2.rotation.x = Math.PI / 2; coil2.position.y = 0.3;
+                head.add(coil2);
+            }
             
-            const flash = document.getElementById('flash-overlay');
-            flash.style.opacity = '0.3';
-            setTimeout(() => flash.style.opacity = '0', 100);
+            group.add(head);
+            group.userData.head = head; // Store reference to rotate it later
+
+            // Tier Indicator (Glowing Rings)
+            if (level > 1) {
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+                for(let i=1; i<level; i++) {
+                    let ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 4, 16), ringMat);
+                    ring.rotation.x = Math.PI/2;
+                    ring.position.y = (i * 0.15);
+                    group.add(ring);
+                }
+            }
+
+            return group;
         }
 
-        function updateScore() {
-            score += 100 * combo;
-            combo++;
-            
-            const comboEl = document.getElementById('combo-display');
-            comboEl.innerText = `x${combo}`;
-            document.getElementById('score').innerText = score;
-            
-            comboEl.style.transform = 'scale(1.5)';
-            comboEl.style.color = new THREE.Color().setHSL(Math.random(), 1, 0.6).getStyle();
-            setTimeout(() => comboEl.style.transform = 'scale(1)', 100);
+        // --- 6. INTERACTION LOGIC ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function selectTower(type) {
+            selectedTowerType = type;
+            document.querySelectorAll('.tower-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById(`btn-${type}`).classList.add('selected');
         }
 
-        window.addEventListener('keydown', (e) => {
-            if (!isPlaying) return;
-            
-            const keyChar = e.key.toLowerCase();
-            const laneIndex = keys.indexOf(keyChar);
-            
-            if (laneIndex !== -1) {
-                targetPads[laneIndex].mesh.position.y = -0.5; 
-                targetPads[laneIndex].mesh.material.opacity = 0.8; 
-                setTimeout(() => {
-                    targetPads[laneIndex].mesh.position.y = targetPads[laneIndex].originalY;
-                    targetPads[laneIndex].mesh.material.opacity = 0.3;
-                }, 100);
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.tagName === 'BUTTON' || !isRunning) return; // Ignore UI clicks
 
-                let hitSuccess = false;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // 1. Check if clicking an existing tower to upgrade
+            const towerIntersects = raycaster.intersectObjects(towers.map(t => t.mesh), true);
+            if (towerIntersects.length > 0) {
+                // Find parent tower object
+                let clickedMesh = towerIntersects[0].object;
+                while(clickedMesh.parent && clickedMesh.parent.type !== 'Scene') { clickedMesh = clickedMesh.parent; }
                 
-                for (let i = 0; i < blocks.length; i++) {
-                    let b = blocks[i];
-                    if (b.active && b.lane === laneIndex) {
-                        if (Math.abs(b.z - hitZoneZ) < hitTolerance) {
-                            hitSuccess = true;
-                            b.active = false;
-                            scene.remove(b.mesh);
-                            
-                            createExplosion(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, targetPads[laneIndex].color);
-                            updateScore();
-                            break; 
-                        }
+                const t = towers.find(tw => tw.mesh === clickedMesh);
+                if (t) openUpgradePanel(t);
+                return;
+            }
+
+            // 2. Check if clicking a grass tile to build
+            const tileIntersects = raycaster.intersectObjects(tiles.map(t => t.mesh));
+            if (tileIntersects.length > 0) {
+                let tileMesh = tileIntersects[0].object;
+                let tileData = tiles.find(t => t.mesh === tileMesh);
+
+                if (!tileData.occupied) {
+                    let data = TOWER_DATA[selectedTowerType];
+                    if (money >= data.cost) {
+                        money -= data.cost;
+                        updateUI();
+                        
+                        let mesh = createTowerMesh(selectedTowerType, 1);
+                        mesh.position.set(tileMesh.position.x, 0.1, tileMesh.position.z);
+                        scene.add(mesh);
+
+                        towers.push({
+                            type: selectedTowerType, level: 1, mesh: mesh, head: mesh.userData.head,
+                            x: tileMesh.position.x, z: tileMesh.position.z,
+                            range: data.range, damage: data.damage, fireRate: data.fireRate,
+                            typeAttack: data.type, cooldown: 0, cost: data.cost, splashRadius: data.splashRadius
+                        });
+                        
+                        tileData.occupied = true;
+                        closeUpgradePanel();
                     }
                 }
-                
-                if (!hitSuccess) resetCombo();
             }
         });
 
+        // --- 7. UPGRADE SYSTEM ---
+        function openUpgradePanel(tower) {
+            activeTowerForUpgrade = tower;
+            document.getElementById('upgrade-panel').style.display = 'block';
+            updateUpgradeUI();
+        }
+
+        function closeUpgradePanel() {
+            document.getElementById('upgrade-panel').style.display = 'none';
+            activeTowerForUpgrade = null;
+        }
+
+        function updateUpgradeUI() {
+            if (!activeTowerForUpgrade) return;
+            const t = activeTowerForUpgrade;
+            document.getElementById('up-title').innerText = `${t.type} - Level ${t.level}`;
+            document.getElementById('upgrade-stats').innerHTML = `Damage: ${Math.floor(t.damage)}<br>Range: ${t.range.toFixed(1)}`;
+            
+            const btn = document.getElementById('up-btn');
+            if (t.level >= MAX_LEVEL) {
+                btn.innerText = "MAX LEVEL";
+                btn.disabled = true;
+                btn.style.background = "#64748b";
+            } else {
+                let upCost = Math.floor(t.cost * 0.8);
+                btn.innerText = `Upgrade ($${upCost})`;
+                btn.disabled = false;
+                btn.style.background = money >= upCost ? "#10b981" : "#ef4444";
+            }
+        }
+
+        function upgradeSelectedTower() {
+            if (!activeTowerForUpgrade || activeTowerForUpgrade.level >= MAX_LEVEL) return;
+            let upCost = Math.floor(activeTowerForUpgrade.cost * 0.8);
+            
+            if (money >= upCost) {
+                money -= upCost;
+                
+                // Boost Stats
+                activeTowerForUpgrade.level++;
+                activeTowerForUpgrade.damage *= UPGRADE_MULTIPLIER;
+                activeTowerForUpgrade.range *= 1.1; // Range goes up slowly
+                activeTowerForUpgrade.cost += upCost; // Increases next upgrade cost
+
+                // Rebuild Mesh to show new visual tier
+                scene.remove(activeTowerForUpgrade.mesh);
+                let newMesh = createTowerMesh(activeTowerForUpgrade.type, activeTowerForUpgrade.level);
+                newMesh.position.set(activeTowerForUpgrade.x, 0.1, activeTowerForUpgrade.z);
+                scene.add(newMesh);
+                activeTowerForUpgrade.mesh = newMesh;
+                activeTowerForUpgrade.head = newMesh.userData.head;
+
+                updateUI();
+                updateUpgradeUI();
+            }
+        }
+
+        // --- 8. ENEMIES & COMBAT ---
+        const enemyGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+        const enemyMat = new THREE.MeshPhongMaterial({ color: 0xef4444 });
+
+        function spawnEnemy() {
+            let mesh = new THREE.Mesh(enemyGeo, enemyMat);
+            let start = waypoints[0];
+            mesh.position.set(start.x - offset, 0.4, start.z - offset);
+            scene.add(mesh);
+
+            // Scale enemy HP by wave
+            enemies.push({
+                mesh: mesh, wpIndex: 0, hp: 20 * Math.pow(1.2, wave - 1), maxHp: 20 * Math.pow(1.2, wave - 1),
+                x: mesh.position.x, z: mesh.position.z, active: true
+            });
+        }
+
+        let enemiesToSpawn = 0;
+        let spawnTimer = 0;
+
         function startGame() {
             document.getElementById('start-screen').style.display = 'none';
-            isPlaying = true;
-            score = 0;
-            combo = 1;
-            
-            spawnInterval = setInterval(spawnBlock, 600);
+            isRunning = true;
+            enemiesToSpawn = 10 + (wave * 2);
             animate();
         }
 
-        // --- 6. ANIMATION LOOP ---
+        function updateUI() {
+            document.getElementById('money').innerText = `💰 Bank: $${money}`;
+            document.getElementById('health').innerText = `❤️ Castle: ${health}`;
+            document.getElementById('wave').innerText = `Wave: ${wave}`;
+            if (activeTowerForUpgrade) updateUpgradeUI();
+        }
+
+        // Visual effects
+        function drawLaser(x1, z1, x2, z2, colorStr) {
+            const material = new THREE.LineBasicMaterial({ color: colorStr });
+            const points = [new THREE.Vector3(x1, 1, z1), new THREE.Vector3(x2, 0.5, z2)];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            setTimeout(() => scene.remove(line), 50); // Flash briefly
+        }
+
+        // --- 9. MAIN GAME LOOP ---
         function animate() {
-            if (!isPlaying) return;
+            if (!isRunning) return;
             requestAnimationFrame(animate);
 
-            gridHelper.position.z += blockSpeed;
-            if (gridHelper.position.z > 10) gridHelper.position.z = 0;
+            // Spawning
+            spawnTimer++;
+            if (spawnTimer > 60 && enemiesToSpawn > 0) {
+                spawnEnemy();
+                spawnTimer = 0;
+                enemiesToSpawn--;
+            }
 
-            for (let i = blocks.length - 1; i >= 0; i--) {
-                let b = blocks[i];
-                if (!b.active) {
-                    blocks.splice(i, 1);
+            // Move Enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                if (!e.active) { enemies.splice(i, 1); continue; }
+
+                let targetWp = waypoints[e.wpIndex + 1];
+                if (!targetWp) {
+                    // Reached Castle!
+                    health -= 10;
+                    e.active = false;
+                    scene.remove(e.mesh);
+                    updateUI();
+                    if (health <= 0) { isRunning = false; alert("GAME OVER! Castle Destroyed."); }
                     continue;
                 }
+
+                // Calculate movement
+                let tx = targetWp.x - offset;
+                let tz = targetWp.z - offset;
+                let dx = tx - e.x;
+                let dz = tz - e.z;
+                let dist = Math.sqrt(dx*dx + dz*dz);
                 
-                b.z += blockSpeed;
-                b.mesh.position.z = b.z;
-                
-                if (b.z > hitZoneZ + hitTolerance) {
-                    b.active = false;
-                    scene.remove(b.mesh);
-                    blocks.splice(i, 1);
-                    resetCombo(); 
+                let speed = 0.03;
+                if (dist < speed) {
+                    e.wpIndex++; // Reached waypoint
+                } else {
+                    e.x += (dx / dist) * speed;
+                    e.z += (dz / dist) * speed;
+                    e.mesh.position.set(e.x, 0.4, e.z);
                 }
             }
 
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.mesh.position.x += p.vx;
-                p.mesh.position.y += p.vy;
-                p.mesh.position.z += p.vz;
-                p.vy -= 0.05; 
-                p.life -= 0.05; 
-                p.mesh.scale.setScalar(p.life);
+            // Tower Logic
+            towers.forEach(t => {
+                t.cooldown--;
+                
+                // Find Target
+                let target = null;
+                let minDist = t.range;
 
-                if (p.life <= 0) {
-                    scene.remove(p.mesh);
-                    particles.splice(i, 1);
+                // Tesla Aura hits everything in range instantly
+                if (t.typeAttack === 'aura' && t.cooldown <= 0) {
+                    let zapped = false;
+                    enemies.forEach(e => {
+                        if(!e.active) return;
+                        let dist = Math.sqrt(Math.pow(e.x - t.x, 2) + Math.pow(e.z - t.z, 2));
+                        if (dist <= t.range) {
+                            e.hp -= t.damage;
+                            zapped = true;
+                            drawLaser(t.x, t.z, e.x, e.z, 0xa855f7); // Purple lightning
+                            if (e.hp <= 0) { e.active = false; scene.remove(e.mesh); money += 5; updateUI(); }
+                        }
+                    });
+                    if (zapped) t.cooldown = t.fireRate;
+                    return;
                 }
+
+                // Other towers target the closest enemy
+                enemies.forEach(e => {
+                    if (!e.active) return;
+                    let dist = Math.sqrt(Math.pow(e.x - t.x, 2) + Math.pow(e.z - t.z, 2));
+                    if (dist < minDist) { minDist = dist; target = e; }
+                });
+
+                if (target) {
+                    // Look at target
+                    t.head.lookAt(target.x, t.head.position.y, target.z);
+
+                    if (t.cooldown <= 0) {
+                        t.cooldown = t.fireRate;
+
+                        if (t.typeAttack === 'beam') {
+                            // Continuous Laser
+                            target.hp -= t.damage;
+                            drawLaser(t.x, t.z, target.x, target.z, 0x38bdf8);
+                            if (target.hp <= 0) { target.active = false; scene.remove(target.mesh); money += 5; updateUI(); }
+                        
+                        } else if (t.typeAttack === 'bullet' || t.typeAttack === 'splash') {
+                            // Create Projectile
+                            let pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                            pMesh.position.set(t.x, 1, t.z);
+                            scene.add(pMesh);
+                            projectiles.push({
+                                mesh: pMesh, x: t.x, z: t.z, target: target, 
+                                damage: t.damage, splash: t.splashRadius, active: true
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Move Projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let p = projectiles[i];
+                if (!p.active || !p.target.active) { 
+                    scene.remove(p.mesh); projectiles.splice(i, 1); continue; 
+                }
+
+                let dx = p.target.x - p.x;
+                let dz = p.target.z - p.z;
+                let dist = Math.sqrt(dx*dx + dz*dz);
+                let speed = 0.2;
+
+                if (dist < speed) {
+                    // Hit!
+                    p.active = false;
+                    scene.remove(p.mesh);
+
+                    if (p.splash) {
+                        // Area of Effect Damage
+                        enemies.forEach(e => {
+                            if (!e.active) return;
+                            let sDist = Math.sqrt(Math.pow(e.x - p.target.x, 2) + Math.pow(e.z - p.target.z, 2));
+                            if (sDist <= p.splash) {
+                                e.hp -= p.damage;
+                                if (e.hp <= 0) { e.active = false; scene.remove(e.mesh); money += 5; updateUI(); }
+                            }
+                        });
+                        // Visual explosion ring
+                        drawLaser(p.target.x, p.target.z, p.target.x+0.1, p.target.z+0.1, 0xf97316); 
+                    } else {
+                        // Single Target Damage
+                        p.target.hp -= p.damage;
+                        if (p.target.hp <= 0) { p.target.active = false; scene.remove(p.target.mesh); money += 5; updateUI(); }
+                    }
+                } else {
+                    p.x += (dx / dist) * speed;
+                    p.z += (dz / dist) * speed;
+                    p.mesh.position.set(p.x, 1, p.z);
+                }
+            }
+
+            // Wave Management
+            if (enemiesToSpawn === 0 && enemies.length === 0 && isRunning) {
+                wave++;
+                money += 50; // Wave completion bonus
+                updateUI();
+                enemiesToSpawn = 10 + (wave * 2);
             }
 
             renderer.render(scene, camera);
         }
 
+        // Handle Resizing
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const newAspect = window.innerWidth / window.innerHeight;
+            camera.left = -d * newAspect;
+            camera.right = d * newAspect;
+            camera.top = d;
+            camera.bottom = -d;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
