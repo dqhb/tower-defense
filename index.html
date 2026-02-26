@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>beat_thingy</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #05020a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        canvas { display: block; }
+        
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        
+        #top-bar { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+        
+        .stat-box { background: rgba(0,0,0,0.6); padding: 15px 25px; border-radius: 10px; border: 2px solid #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+        .stat-label { font-size: 0.9rem; color: #d8b4fe; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .stat-value { font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px #fff; margin: 0; }
+        
+        #combo-display { color: #facc15; text-shadow: 0 0 15px #facc15; transition: transform 0.1s; }
+        
+        #controls-overlay {
+            width: 100%; padding-bottom: 40px; text-align: center;
+            font-size: 1.2rem; color: rgba(255,255,255,0.5); letter-spacing: 5px;
+        }
+
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 2, 10, 0.9); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; pointer-events: auto; z-index: 10;
+        }
+        #start-screen h1 { font-size: 4rem; color: #a855f7; text-shadow: 0 0 20px #a855f7; margin-bottom: 10px; letter-spacing: 4px; }
+        #start-btn {
+            background: #a855f7; color: white; border: none; padding: 15px 40px; font-size: 1.5rem;
+            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 30px; box-shadow: 0 0 20px #a855f7; transition: 0.2s;
+        }
+        #start-btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
+        
+        /* Flash effect for missing */
+        #flash-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: red; opacity: 0; pointer-events: none; transition: opacity 0.1s;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="flash-overlay"></div>
+
+    <div id="start-screen">
+        <h1>beat_thingy</h1>
+        <p style="color: white; font-size: 1.2rem;">home row: A S D F G H J K L</p>
+        <button id="start-btn" onclick="startGame()">SMASH</button>
+    </div>
+
+    <div id="ui-layer">
+        <div id="top-bar">
+            <div class="stat-box">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-box" style="text-align: right; border-color: #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.4);">
+                <div class="stat-label" style="color: #fef08a;">Combo</div>
+                <div class="stat-value" id="combo-display">x1</div>
+            </div>
+        </div>
+        <div id="controls-overlay">
+            [ A ] [ S ] [ D ] [ F ] [ G ] [ H ] [ J ] [ K ] [ L ]
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SETUP THREE.JS ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05020a, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 14); // Angled down at the highway
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // --- 2. GAME VARIABLES ---
+        const keys = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+        const laneWidth = 2.2; // How wide each lane is
+        const startX = -((keys.length - 1) * laneWidth) / 2; // Center the 9 lanes
+        
+        const hitZoneZ = 8;     // The Z-coordinate where you should press the key
+        const hitTolerance = 2; // How forgiving the timing is
+        const spawnZ = -80;     // Where blocks spawn in the distance
+        const blockSpeed = 0.8; // How fast blocks move
+
+        let blocks = [];
+        let particles = [];
+        let score = 0;
+        let combo = 1;
+        let isPlaying = false;
+        let spawnInterval;
+
+        // --- 3. ENVIRONMENT & VISUALS ---
+        
+        // Moving Synthwave Grid
+        const gridHelper = new THREE.GridHelper(200, 100, 0xa855f7, 0x4c1d95);
+        gridHelper.position.y = -0.5;
+        scene.add(gridHelper);
+
+        // Target Hit Zones (The glowing squares at the bottom)
+        const hitZoneGeo = new THREE.PlaneGeometry(laneWidth * 0.8, laneWidth * 0.8);
+        hitZoneGeo.rotateX(-Math.PI / 2); // Lay flat
+        const targetPads = [];
+
+        for (let i = 0; i < keys.length; i++) {
+            // Calculate color gradient across the lanes (Cyan -> Purple -> Pink)
+            const hue = 0.5 + (i / keys.length) * 0.4;
+            const laneColor = new THREE.Color().setHSL(hue, 1, 0.6);
+            
+            const padMat = new THREE.MeshBasicMaterial({ color: laneColor, transparent: true, opacity: 0.3, wireframe: true });
+            const pad = new THREE.Mesh(hitZoneGeo, padMat);
+            
+            pad.position.set(startX + i * laneWidth, 0.01, hitZoneZ);
+            scene.add(pad);
+            targetPads.push({ mesh: pad, color: laneColor, originalY: 0.01 });
+        }
+
+        // --- 4. BLOCK SPAWNING & EXPLOSIONS ---
+        const blockGeo = new THREE.BoxGeometry(laneWidth * 0.8, laneWidth * 0.8, laneWidth * 0.8);
+
+        function spawnBlock() {
+            if (!isPlaying) return;
+            
+            // Pick random lane
+            const laneIndex = Math.floor(Math.random() * keys.length);
+            const laneColor = targetPads[laneIndex].color;
+            
+            const blockMat = new THREE.MeshPhongMaterial({ 
+                color: laneColor, 
+                emissive: laneColor, 
+                emissiveIntensity: 0.5 
+            });
+            
+            const block = new THREE.Mesh(blockGeo, blockMat);
+            block.position.set(startX + laneIndex * laneWidth, laneWidth/2, spawnZ);
+            scene.add(block);
+            
+            blocks.push({ mesh: block, lane: laneIndex, z: spawnZ, active: true });
+        }
+
+        const particleGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+
+        function createExplosion(x, y, z, color) {
+            const mat = new THREE.MeshBasicMaterial({ color: color });
+            for (let i = 0; i < 15; i++) {
+                const p = new THREE.Mesh(particleGeo, mat);
+                p.position.set(x, y, z);
+                scene.add(p);
+                
+                particles.push({
+                    mesh: p,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: Math.random() * 1.5,
+                    vz: (Math.random() - 0.5) * 1.5,
+                    life: 1.0 // Fade out timer
+                });
+            }
+        }
+
+        // --- 5. GAME LOGIC ---
+        function resetCombo() {
+            combo = 1;
+            document.getElementById('combo-display').innerText = `x${combo}`;
+            document.getElementById('combo-display').style.color = '#fff';
+            
+            // Red screen flash
+            const flash = document.getElementById('flash-overlay');
+            flash.style.opacity = '0.3';
+            setTimeout(() => flash.style.opacity = '0', 100);
+        }
+
+        function updateScore() {
+            score += 100 * combo;
+            combo++;
+            
+            const comboEl = document.getElementById('combo-display');
+            comboEl.innerText = `x${combo}`;
+            document.getElementById('score').innerText = score;
+            
+            // Make combo text pop
+            comboEl.style.transform = 'scale(1.5)';
+            comboEl.style.color = new THREE.Color().setHSL(Math.random(), 1, 0.6).getStyle();
+            setTimeout(() => comboEl.style.transform = 'scale(1)', 100);
+        }
+
+        // Input Handling
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            
+            const keyChar = e.key.toLowerCase();
+            const laneIndex = keys.indexOf(keyChar);
+            
+            if (laneIndex !== -1) {
+                // Visual feedback on the pad
+                targetPads[laneIndex].mesh.position.y = -0.5; // Press down
+                targetPads[laneIndex].mesh.material.opacity = 0.8; // Light up
+                setTimeout(() => {
+                    targetPads[laneIndex].mesh.position.y = targetPads[laneIndex].originalY;
+                    targetPads[laneIndex].mesh.material.opacity = 0.3;
+                }, 100);
+
+                // Hit Detection
+                let hitSuccess = false;
+                
+                // Find blocks in this lane
+                for (let i = 0; i < blocks.length; i++) {
+                    let b = blocks[i];
+                    if (b.active && b.lane === laneIndex) {
+                        // Check if inside hit tolerance
+                        if (Math.abs(b.z - hitZoneZ) < hitTolerance) {
+                            hitSuccess = true;
+                            b.active = false;
+                            scene.remove(b.mesh);
+                            
+                            // BOOM
+                            createExplosion(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, targetPads[laneIndex].color);
+                            updateScore();
+                            break; // Only hit one block per press
+                        }
+                    }
+                }
+                
+                // If you pressed a key but didn't hit anything, break combo
+                if (!hitSuccess) resetCombo();
+            }
+        });
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            isPlaying = true;
+            score = 0;
+            combo = 1;
+            
+            // Start spawning blocks
+            spawnInterval = setInterval(spawnBlock, 600);
+            animate();
+        }
+
+        // --- 6. ANIMATION LOOP ---
+        function animate() {
+            if (!isPlaying) return;
+            requestAnimationFrame(animate);
+
+            // Animate Grid (gives illusion of moving forward)
+            gridHelper.position.z += blockSpeed;
+            if (gridHelper.position.z > 10) gridHelper.position.z = 0;
+
+            // Move Blocks
+            for (let i = blocks.length - 1; i >= 0; i--) {
+                let b = blocks[i];
+                if (!b.active) {
+                    blocks.splice(i, 1);
+                    continue;
+                }
+                
+                b.z += blockSpeed;
+                b.mesh.position.z = b.z;
+                
+                // Miss Detection (Block went past the camera)
+                if (b.z > hitZoneZ + hitTolerance) {
+                    b.active = false;
+                    scene.remove(b.mesh);
+                    blocks.splice(i, 1);
+                    resetCombo(); // Dropped a note!
+                }
+            }
+
+            // Move Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.mesh.position.x += p.vx;
+                p.mesh.position.y += p.vy;
+                p.mesh.position.z += p.vz;
+                
+                p.vy -= 0.05; // Gravity
+                p.life -= 0.05; // Fade out
+                
+                // Shrink
+                p.mesh.scale.setScalar(p.life);
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
