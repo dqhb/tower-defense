@@ -23,7 +23,7 @@
         
         #controls-overlay {
             width: 100%; padding-bottom: 40px; text-align: center;
-            font-size: 1.2rem; color: rgba(255,255,255,0.5); letter-spacing: 5px;
+            font-size: 1.2rem; color: rgba(255,255,255,0.5); letter-spacing: 5px; text-transform: uppercase;
         }
 
         #start-screen {
@@ -39,7 +39,6 @@
         }
         #start-btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
         
-        /* Flash effect for missing */
         #flash-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: red; opacity: 0; pointer-events: none; transition: opacity 0.1s;
@@ -79,25 +78,25 @@
         scene.fog = new THREE.FogExp2(0x05020a, 0.015);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 8, 14); // Angled down at the highway
+        camera.position.set(0, 8, 14); 
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
         // --- 2. GAME VARIABLES ---
         const keys = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-        const laneWidth = 2.2; // How wide each lane is
-        const startX = -((keys.length - 1) * laneWidth) / 2; // Center the 9 lanes
+        const laneWidth = 2.2; 
+        const startX = -((keys.length - 1) * laneWidth) / 2; 
         
-        const hitZoneZ = 8;     // The Z-coordinate where you should press the key
-        const hitTolerance = 2; // How forgiving the timing is
-        const spawnZ = -80;     // Where blocks spawn in the distance
-        const blockSpeed = 0.8; // How fast blocks move
+        const hitZoneZ = 8;     
+        const hitTolerance = 2; 
+        const spawnZ = -80;     
+        const blockSpeed = 0.8; 
 
         let blocks = [];
         let particles = [];
@@ -106,22 +105,50 @@
         let isPlaying = false;
         let spawnInterval;
 
-        // --- 3. ENVIRONMENT & VISUALS ---
-        
-        // Moving Synthwave Grid
+        // --- 3. DYNAMIC TEXTURES & ENVIRONMENT ---
         const gridHelper = new THREE.GridHelper(200, 100, 0xa855f7, 0x4c1d95);
         gridHelper.position.y = -0.5;
         scene.add(gridHelper);
 
-        // Target Hit Zones (The glowing squares at the bottom)
         const hitZoneGeo = new THREE.PlaneGeometry(laneWidth * 0.8, laneWidth * 0.8);
-        hitZoneGeo.rotateX(-Math.PI / 2); // Lay flat
+        hitZoneGeo.rotateX(-Math.PI / 2); 
         const targetPads = [];
+        const laneTextures = [];
+
+        // Function to create a canvas texture with a letter on it
+        function createLetterTexture(letter, hexColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Dark background for the block
+            ctx.fillStyle = '#111111'; 
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Neon Border
+            ctx.strokeStyle = hexColor;
+            ctx.lineWidth = 15;
+            ctx.strokeRect(0, 0, 256, 256);
+
+            // Draw the Letter
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = hexColor;
+            ctx.shadowBlur = 20; // Neon glow effect on text
+            ctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(letter.toUpperCase(), 128, 140);
+
+            return new THREE.CanvasTexture(canvas);
+        }
 
         for (let i = 0; i < keys.length; i++) {
-            // Calculate color gradient across the lanes (Cyan -> Purple -> Pink)
             const hue = 0.5 + (i / keys.length) * 0.4;
             const laneColor = new THREE.Color().setHSL(hue, 1, 0.6);
+            
+            // Generate and store the texture for this specific lane
+            const hexColorString = '#' + laneColor.getHexString();
+            laneTextures.push(createLetterTexture(keys[i], hexColorString));
             
             const padMat = new THREE.MeshBasicMaterial({ color: laneColor, transparent: true, opacity: 0.3, wireframe: true });
             const pad = new THREE.Mesh(hitZoneGeo, padMat);
@@ -137,14 +164,14 @@
         function spawnBlock() {
             if (!isPlaying) return;
             
-            // Pick random lane
             const laneIndex = Math.floor(Math.random() * keys.length);
             const laneColor = targetPads[laneIndex].color;
             
+            // Apply the generated texture mapping
             const blockMat = new THREE.MeshPhongMaterial({ 
-                color: laneColor, 
+                map: laneTextures[laneIndex],
                 emissive: laneColor, 
-                emissiveIntensity: 0.5 
+                emissiveIntensity: 0.1 // Kept low so the texture is highly visible
             });
             
             const block = new THREE.Mesh(blockGeo, blockMat);
@@ -162,13 +189,12 @@
                 const p = new THREE.Mesh(particleGeo, mat);
                 p.position.set(x, y, z);
                 scene.add(p);
-                
                 particles.push({
                     mesh: p,
                     vx: (Math.random() - 0.5) * 1.5,
                     vy: Math.random() * 1.5,
                     vz: (Math.random() - 0.5) * 1.5,
-                    life: 1.0 // Fade out timer
+                    life: 1.0 
                 });
             }
         }
@@ -179,7 +205,6 @@
             document.getElementById('combo-display').innerText = `x${combo}`;
             document.getElementById('combo-display').style.color = '#fff';
             
-            // Red screen flash
             const flash = document.getElementById('flash-overlay');
             flash.style.opacity = '0.3';
             setTimeout(() => flash.style.opacity = '0', 100);
@@ -193,13 +218,11 @@
             comboEl.innerText = `x${combo}`;
             document.getElementById('score').innerText = score;
             
-            // Make combo text pop
             comboEl.style.transform = 'scale(1.5)';
             comboEl.style.color = new THREE.Color().setHSL(Math.random(), 1, 0.6).getStyle();
             setTimeout(() => comboEl.style.transform = 'scale(1)', 100);
         }
 
-        // Input Handling
         window.addEventListener('keydown', (e) => {
             if (!isPlaying) return;
             
@@ -207,36 +230,30 @@
             const laneIndex = keys.indexOf(keyChar);
             
             if (laneIndex !== -1) {
-                // Visual feedback on the pad
-                targetPads[laneIndex].mesh.position.y = -0.5; // Press down
-                targetPads[laneIndex].mesh.material.opacity = 0.8; // Light up
+                targetPads[laneIndex].mesh.position.y = -0.5; 
+                targetPads[laneIndex].mesh.material.opacity = 0.8; 
                 setTimeout(() => {
                     targetPads[laneIndex].mesh.position.y = targetPads[laneIndex].originalY;
                     targetPads[laneIndex].mesh.material.opacity = 0.3;
                 }, 100);
 
-                // Hit Detection
                 let hitSuccess = false;
                 
-                // Find blocks in this lane
                 for (let i = 0; i < blocks.length; i++) {
                     let b = blocks[i];
                     if (b.active && b.lane === laneIndex) {
-                        // Check if inside hit tolerance
                         if (Math.abs(b.z - hitZoneZ) < hitTolerance) {
                             hitSuccess = true;
                             b.active = false;
                             scene.remove(b.mesh);
                             
-                            // BOOM
                             createExplosion(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, targetPads[laneIndex].color);
                             updateScore();
-                            break; // Only hit one block per press
+                            break; 
                         }
                     }
                 }
                 
-                // If you pressed a key but didn't hit anything, break combo
                 if (!hitSuccess) resetCombo();
             }
         });
@@ -247,7 +264,6 @@
             score = 0;
             combo = 1;
             
-            // Start spawning blocks
             spawnInterval = setInterval(spawnBlock, 600);
             animate();
         }
@@ -257,11 +273,9 @@
             if (!isPlaying) return;
             requestAnimationFrame(animate);
 
-            // Animate Grid (gives illusion of moving forward)
             gridHelper.position.z += blockSpeed;
             if (gridHelper.position.z > 10) gridHelper.position.z = 0;
 
-            // Move Blocks
             for (let i = blocks.length - 1; i >= 0; i--) {
                 let b = blocks[i];
                 if (!b.active) {
@@ -272,26 +286,21 @@
                 b.z += blockSpeed;
                 b.mesh.position.z = b.z;
                 
-                // Miss Detection (Block went past the camera)
                 if (b.z > hitZoneZ + hitTolerance) {
                     b.active = false;
                     scene.remove(b.mesh);
                     blocks.splice(i, 1);
-                    resetCombo(); // Dropped a note!
+                    resetCombo(); 
                 }
             }
 
-            // Move Particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.mesh.position.x += p.vx;
                 p.mesh.position.y += p.vy;
                 p.mesh.position.z += p.vz;
-                
-                p.vy -= 0.05; // Gravity
-                p.life -= 0.05; // Fade out
-                
-                // Shrink
+                p.vy -= 0.05; 
+                p.life -= 0.05; 
                 p.mesh.scale.setScalar(p.life);
 
                 if (p.life <= 0) {
@@ -303,7 +312,6 @@
             renderer.render(scene, camera);
         }
 
-        // Handle Resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
